@@ -35,7 +35,6 @@ from collab.api.config_sync import (
 )
 from collab.web.forks import router as forks_router
 from collab.web.profile import router as profile_router
-from collab.saleae.api import router as saleae_router
 from collab.auth import _LoginRequired
 
 app = FastAPI(title="AutoResearch Collab", version="1.0.0")
@@ -52,7 +51,6 @@ app.include_router(research_config_router)
 app.include_router(config_sync_router)
 app.include_router(forks_router)
 app.include_router(profile_router)
-app.include_router(saleae_router)
 
 
 @app.exception_handler(_LoginRequired)

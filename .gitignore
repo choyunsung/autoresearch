@@ -27,5 +27,4 @@ collab/research.db
 collab/.secret_key
 *.output
 logs/
-captures/
 .server.pid
