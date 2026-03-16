@@ -12,21 +12,21 @@
   <nav class="navbar">
     <a href="/" class="navbar-brand">AutoResearch Collab</a>
     <ul class="navbar-nav">
-      <li><a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>Dashboard</a></li>
-      <li><a href="/experiments" {% if "/experiments" in request.url.path and "/fork" not in request.url.path %}class="active"{% endif %}>Experiments</a></li>
-      <li><a href="/forks" {% if "/forks" in request.url.path or "/merge" in request.url.path %}class="active"{% endif %}>Forks</a></li>
-      <li><a href="/threads" {% if "/threads" in request.url.path %}class="active"{% endif %}>Threads</a></li>
-      <li><a href="/leaderboard" {% if "/leaderboard" in request.url.path %}class="active"{% endif %}>Leaderboard</a></li>
-      <li><a href="/research-config" {% if "/research-config" in request.url.path %}class="active"{% endif %}>Config</a></li>
+      <li><a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>대시보드</a></li>
+      <li><a href="/experiments" {% if "/experiments" in request.url.path and "/fork" not in request.url.path %}class="active"{% endif %}>실험</a></li>
+      <li><a href="/forks" {% if "/forks" in request.url.path or "/merge" in request.url.path %}class="active"{% endif %}>포크</a></li>
+      <li><a href="/threads" {% if "/threads" in request.url.path %}class="active"{% endif %}>토론</a></li>
+      <li><a href="/leaderboard" {% if "/leaderboard" in request.url.path %}class="active"{% endif %}>순위</a></li>
+      <li><a href="/research-config" {% if "/research-config" in request.url.path %}class="active"{% endif %}>설정</a></li>
     </ul>
     <div class="navbar-user">
       {% if user %}
         <a href="/researchers/{{ user.id }}" style="color: var(--text-secondary); font-weight: 500;">{{ user.display_name }}</a>
-        <a href="/profile/edit" class="btn btn-sm">Profile</a>
-        <a href="/logout" class="btn btn-sm">Logout</a>
+        <a href="/profile/edit" class="btn btn-sm">프로필</a>
+        <a href="/logout" class="btn btn-sm">로그아웃</a>
       {% else %}
-        <a href="/login" class="btn btn-sm">Login</a>
-        <a href="/register" class="btn btn-sm btn-primary">Register</a>
+        <a href="/login" class="btn btn-sm">로그인</a>
+        <a href="/register" class="btn btn-sm btn-primary">가입</a>
       {% endif %}
     </div>
   </nav>

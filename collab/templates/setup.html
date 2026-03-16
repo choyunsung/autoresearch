@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>초기 설정 — AutoResearch Collab</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+    <div style="max-width: 480px; width: 100%; padding: 2rem;">
+      <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">AutoResearch Collab</h1>
+        <p style="color: var(--text-secondary);">협업 연구 플랫폼 초기 설정</p>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+          첫 번째 계정을 생성하세요. 이 계정이 플랫폼의 관리자가 됩니다.
+        </p>
+      </div>
+
+      <div class="card">
+        <form method="post" action="/setup">
+          <div class="grid-equal">
+            <div class="form-group">
+              <label for="username">사용자 ID</label>
+              <input type="text" id="username" name="username" required autofocus placeholder="yunsung">
+            </div>
+            <div class="form-group">
+              <label for="display_name">이름</label>
+              <input type="text" id="display_name" name="display_name" required placeholder="조윤성">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" required placeholder="yunsung@example.com">
+          </div>
+          <div class="form-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" name="password" required minlength="6">
+          </div>
+          <div class="form-group">
+            <label for="institution">소속 (선택)</label>
+            <input type="text" id="institution" name="institution" placeholder="서울아산병원">
+          </div>
+          <div class="form-group">
+            <label for="gpu_info">GPU 정보 (선택)</label>
+            <input type="text" id="gpu_info" name="gpu_info" placeholder="H100 80GB">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+            시작하기
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

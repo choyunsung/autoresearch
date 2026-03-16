@@ -14,7 +14,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 
-from collab.database import get_db, init_db, engine, Base
+from collab.database import get_db, init_db, engine, Base, SessionLocal
 from collab.models import Researcher, Experiment, ResearchThread, ExperimentComment
 from collab.auth import (
   hash_password, verify_password, create_token,
@@ -63,6 +63,23 @@ def on_startup():
   Base.metadata.create_all(bind=engine)
 
 
+@app.middleware("http")
+async def first_user_setup_middleware(request: Request, call_next):
+  """If no users exist, redirect to /setup (initial account creation)."""
+  path = request.url.path
+  # Allow static, setup, and API paths through
+  if path.startswith(("/static", "/setup", "/api")):
+    return await call_next(request)
+  db = SessionLocal()
+  try:
+    count = db.query(Researcher).count()
+  finally:
+    db.close()
+  if count == 0 and path != "/setup":
+    return RedirectResponse("/setup", status_code=303)
+  return await call_next(request)
+
+
 # ── Helper ──────────────────────────────────────────────────────────────────
 
 def _user_ctx(request: Request, db: Session):
@@ -72,6 +89,43 @@ def _user_ctx(request: Request, db: Session):
 
 
 # ── Auth pages ──────────────────────────────────────────────────────────────
+
+@app.get("/setup", response_class=HTMLResponse)
+def setup_page(request: Request, db: Session = Depends(get_db)):
+  """Initial setup — create the first admin account."""
+  if db.query(Researcher).count() > 0:
+    return RedirectResponse("/", status_code=303)
+  return templates.TemplateResponse("setup.html", {"request": request, "user": None})
+
+
+@app.post("/setup")
+def setup_submit(
+  request: Request,
+  username: str = Form(...),
+  display_name: str = Form(...),
+  email: str = Form(...),
+  password: str = Form(...),
+  institution: str = Form(""),
+  gpu_info: str = Form(""),
+  db: Session = Depends(get_db),
+):
+  if db.query(Researcher).count() > 0:
+    return RedirectResponse("/", status_code=303)
+  researcher = Researcher(
+    username=username,
+    display_name=display_name,
+    email=email,
+    password_hash=hash_password(password),
+    institution=institution,
+    gpu_info=gpu_info,
+  )
+  db.add(researcher)
+  db.commit()
+  token = create_token({"sub": researcher.id, "username": researcher.username})
+  response = RedirectResponse("/", status_code=303)
+  response.set_cookie("access_token", token, httponly=True, max_age=72 * 3600)
+  return response
+
 
 @app.get("/login", response_class=HTMLResponse)
 def login_page(request: Request, db: Session = Depends(get_db)):
@@ -356,14 +410,13 @@ def post_thread_comment(
 @app.get("/leaderboard", response_class=HTMLResponse)
 def leaderboard_page(request: Request, db: Session = Depends(get_db)):
   ctx = _user_ctx(request, db)
+  from sqlalchemy import case, Integer
   leaderboard = (
     db.query(
       Researcher,
       func.min(Experiment.val_bpb).label("best_bpb"),
       func.count(Experiment.id).label("total_experiments"),
-      func.sum(
-        func.cast(Experiment.status == "keep", db.bind.dialect.type_descriptor(type(1)))
-      ).label("kept"),
+      func.sum(case((Experiment.status == "keep", 1), else_=0)).label("kept"),
     )
     .join(Experiment, Experiment.researcher_id == Researcher.id)
     .filter(Experiment.val_bpb > 0)
