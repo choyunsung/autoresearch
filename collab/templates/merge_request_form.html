@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}New Merge Request — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 2rem auto;">
+  <div class="card">
+    <h2 style="margin-bottom: 1rem;">Create Merge Request</h2>
+
+    <!-- Fork summary -->
+    <div class="card" style="background: var(--bg-primary); margin-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+        <div>
+          <strong style="font-family: monospace;">{{ fork.fork_branch_name }}</strong>
+          &rarr;
+          <strong>{{ fork.source_researcher.display_name }}</strong> /
+          <span style="font-family: monospace;">{{ fork.source_branch_name }}</span>
+        </div>
+      </div>
+      <div class="stats-grid" style="margin-bottom: 0;">
+        <div class="stat-card" style="padding: 0.5rem;">
+          <div class="stat-value" style="font-size: 1.2rem;">{{ total_experiments }}</div>
+          <div class="stat-label">Experiments</div>
+        </div>
+        <div class="stat-card" style="padding: 0.5rem;">
+          <div class="stat-value" style="font-size: 1.2rem;">{{ kept_experiments|length }}</div>
+          <div class="stat-label">Kept</div>
+        </div>
+        <div class="stat-card" style="padding: 0.5rem;">
+          <div class="stat-value" style="font-size: 1.2rem;">
+            {% if best_val_bpb > 0 %}{{ "%.6f"|format(best_val_bpb) }}{% else %}—{% endif %}
+          </div>
+          <div class="stat-label">Best val_bpb</div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" action="/forks/{{ fork.id }}/merge">
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" name="title" required
+               placeholder="e.g. Improved val_bpb to 0.985 with deeper model + lower LR">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="body" style="min-height: 150px;"
+                  placeholder="Describe what you changed and why it improved results...&#10;&#10;- Key changes made&#10;- Best result achieved&#10;- Interesting findings&#10;- Suggested next steps"></textarea>
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">Submit Merge Request</button>
+        <a href="/forks/{{ fork.id }}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

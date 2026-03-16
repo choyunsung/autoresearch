@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Fork Experiment — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+  <div class="card">
+    <h2 style="margin-bottom: 1rem;">Fork Experiment</h2>
+
+    <div class="card" style="background: var(--bg-primary); margin-bottom: 1.5rem;">
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Source:</p>
+      <div style="display: flex; justify-content: space-between;">
+        <div>
+          <strong>{{ experiment.researcher.display_name }}</strong> /
+          <span style="font-family: monospace;">{{ experiment.branch_name }}</span>
+        </div>
+        <span class="metric metric-good">{{ "%.6f"|format(experiment.val_bpb) }}</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+        Commit: <span style="font-family: monospace;">{{ experiment.commit_hash[:7] }}</span> &middot;
+        {{ experiment.description }}
+      </p>
+    </div>
+
+    <form method="post" action="/experiments/{{ experiment.id }}/fork">
+      <div class="form-group">
+        <label>Fork Branch Name</label>
+        <input type="text" name="fork_branch_name" required
+               value="autoresearch/{{ experiment.branch_name.split('/')[-1] }}-{{ user.username }}-fork"
+               placeholder="autoresearch/mar16-yunsung-fork">
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+          Use this as your git branch name when running experiments.
+        </p>
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <textarea name="description" placeholder="What do you plan to explore?"></textarea>
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">Create Fork</button>
+        <a href="/experiments/{{ experiment.id }}" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card" style="margin-top: 1rem;">
+    <h3 style="font-size: 0.95rem; margin-bottom: 0.75rem;">How forking works</h3>
+    <ol style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8; padding-left: 1.5rem;">
+      <li>Create a fork here (records the starting point)</li>
+      <li>On your machine: <code style="background: var(--bg-tertiary); padding: 0.1rem 0.3rem; border-radius: 3px;">git checkout {{ experiment.commit_hash[:7] }} -b YOUR_BRANCH</code></li>
+      <li>Run autoresearch experiments on your new branch</li>
+      <li>Sync results: <code style="background: var(--bg-tertiary); padding: 0.1rem 0.3rem; border-radius: 3px;">python sync_results.py sync --branch YOUR_BRANCH --with-diffs</code></li>
+      <li>When ready, create a Merge Request to share your improvements back</li>
+    </ol>
+  </div>
+</div>
+{% endblock %}

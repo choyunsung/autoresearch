@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Research Config — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+  <div class="page-header">
+    <h1>Research Configuration</h1>
+    <p class="subtitle">Shared persona, objectives, and agent instructions. Changes reflect in all generated prompts.</p>
+  </div>
+
+  {% if success %}
+  <div class="alert alert-success">Configuration updated successfully!</div>
+  {% endif %}
+
+  <form method="post" action="/research-config">
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">Persona</div>
+      <div class="form-group">
+        <label>Research Persona</label>
+        <textarea name="persona" placeholder="Define the AI agent's research persona. Who is it? What expertise does it bring?&#10;&#10;Example: You are a senior ML researcher specializing in efficient transformer architectures. You have deep knowledge of attention mechanisms, optimization techniques, and scaling laws.">{{ config.persona or '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">Objectives</div>
+      <div class="form-group">
+        <label>Research Objective</label>
+        <textarea name="research_objective" placeholder="What is the primary research goal?&#10;&#10;Example: Minimize val_bpb on the ClimbMix-400B dataset within a 5-minute training budget on a single GPU, focusing on architecture innovations that improve sample efficiency.">{{ config.research_objective or '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Methodology</label>
+        <textarea name="methodology" placeholder="What research methodology should the agent follow?&#10;&#10;Example: Start with systematic hyperparameter sweeps, then explore architectural modifications. Test one variable at a time. Use ablation studies to isolate effects.">{{ config.methodology or '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">Constraints & Evaluation</div>
+      <div class="form-group">
+        <label>Additional Constraints</label>
+        <textarea name="constraints" placeholder="Any additional constraints beyond the defaults?&#10;&#10;Example: Keep peak VRAM under 50GB. Avoid techniques that sacrifice interpretability.">{{ config.constraints or '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Evaluation Criteria</label>
+        <textarea name="evaluation_criteria" placeholder="How should experiments be evaluated beyond val_bpb?&#10;&#10;Example: Also consider MFU (model FLOPs utilization) as a secondary metric. Experiments that improve MFU by >5% without harming val_bpb are valuable.">{{ config.evaluation_criteria or '' }}</textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">Custom Instructions</div>
+      <div class="form-group">
+        <label>Additional agent instructions</label>
+        <textarea name="custom_instructions" style="min-height: 150px;"
+                  placeholder="Any extra instructions for the research agent...">{{ config.custom_instructions or '' }}</textarea>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+      <button type="submit" class="btn btn-primary">Save Configuration</button>
+      <a href="/research-config/preview" class="btn">Preview Generated Prompt</a>
+    </div>
+  </form>
+
+  <!-- Linked Projects (auto-sync targets) -->
+  <div class="card" style="margin-top: 2rem;">
+    <div class="card-header">
+      <span class="card-title">Linked Projects (Auto-Sync)</span>
+    </div>
+    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+      When you save the config, program.md and research_config.json are automatically pushed to these directories.
+    </p>
+    <div id="linked-projects"></div>
+    <form onsubmit="linkProject(event)" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+      <input type="text" id="project-name" placeholder="Project name" style="flex: 1;" required>
+      <input type="text" id="project-path" placeholder="/absolute/path/to/project" style="flex: 2;" required>
+      <button type="submit" class="btn btn-primary btn-sm">Link</button>
+    </form>
+  </div>
+
+  {% if config.last_updated_by %}
+  <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 1rem;">
+    Last updated by {{ config.last_updated_by }}
+  </p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadLinkedProjects() {
+  const resp = await fetch('/api/config-sync/projects');
+  const projects = await resp.json();
+  const container = document.getElementById('linked-projects');
+  if (projects.length === 0) {
+    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;">No linked projects yet.</p>';
+    return;
+  }
+  container.innerHTML = projects.map((p, i) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+      <div>
+        <strong>${p.name}</strong>
+        <span style="color: var(--text-muted); font-size: 0.8rem; font-family: monospace; margin-left: 0.5rem;">${p.path}</span>
+      </div>
+      <button onclick="unlinkProject(${i})" class="btn btn-sm" style="color: var(--red);">Remove</button>
+    </div>
+  `).join('');
+}
+
+async function linkProject(e) {
+  e.preventDefault();
+  const name = document.getElementById('project-name').value;
+  const path = document.getElementById('project-path').value;
+  const resp = await fetch('/api/config-sync/projects', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name, path}),
+  });
+  if (resp.ok) {
+    document.getElementById('project-name').value = '';
+    document.getElementById('project-path').value = '';
+    loadLinkedProjects();
+  } else {
+    const data = await resp.json();
+    alert(data.detail || 'Error linking project');
+  }
+}
+
+async function unlinkProject(index) {
+  await fetch(`/api/config-sync/projects/${index}`, {method: 'DELETE'});
+  loadLinkedProjects();
+}
+
+loadLinkedProjects();
+</script>
+{% endblock %}

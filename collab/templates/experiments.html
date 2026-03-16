@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Experiments — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Experiments</h1>
+  <p class="subtitle">All experiment results across researchers</p>
+</div>
+
+<!-- Filters -->
+<form method="get" action="/experiments" class="filter-bar">
+  <div class="form-group">
+    <label>Researcher</label>
+    <select name="researcher_id" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for r in researchers %}
+      <option value="{{ r.id }}" {% if filter_researcher_id == r.id %}selected{% endif %}>{{ r.display_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Branch</label>
+    <select name="branch" onchange="this.form.submit()">
+      <option value="">All</option>
+      {% for b in branches %}
+      <option value="{{ b }}" {% if filter_branch == b %}selected{% endif %}>{{ b }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Status</label>
+    <select name="status" onchange="this.form.submit()">
+      <option value="">All</option>
+      <option value="keep" {% if filter_status == 'keep' %}selected{% endif %}>Keep</option>
+      <option value="discard" {% if filter_status == 'discard' %}selected{% endif %}>Discard</option>
+      <option value="crash" {% if filter_status == 'crash' %}selected{% endif %}>Crash</option>
+    </select>
+  </div>
+</form>
+
+{% if experiments %}
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Researcher</th>
+          <th>Branch</th>
+          <th>Commit</th>
+          <th>val_bpb</th>
+          <th>Memory</th>
+          <th>MFU%</th>
+          <th>Params</th>
+          <th>Status</th>
+          <th>Description</th>
+          <th>Comments</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in experiments %}
+        <tr>
+          <td>{{ exp.id }}</td>
+          <td>{{ exp.researcher.display_name }}</td>
+          <td style="font-size: 0.8rem; font-family: monospace;">{{ exp.branch_name }}</td>
+          <td><a href="/experiments/{{ exp.id }}" style="font-family: monospace; font-size: 0.8rem;">{{ exp.commit_hash[:7] }}</a></td>
+          <td>
+            <span class="metric {% if exp.status == 'keep' %}metric-good{% elif exp.status == 'crash' %}metric-bad{% else %}metric-neutral{% endif %}">
+              {{ "%.6f"|format(exp.val_bpb) }}
+            </span>
+          </td>
+          <td>{{ "%.1f"|format(exp.memory_gb) }} GB</td>
+          <td>{{ "%.1f"|format(exp.mfu_percent) }}%</td>
+          <td>{{ "%.1f"|format(exp.num_params_m) }}M</td>
+          <td><span class="badge badge-{{ exp.status }}">{{ exp.status }}</span></td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ exp.description }}</td>
+          <td>{{ exp.comments|length }}</td>
+          <td style="color: var(--text-muted); font-size: 0.8rem; white-space: nowrap;">{{ exp.created_at.strftime('%m/%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>No experiments found</h3>
+  <p>Use the CLI sync tool to upload your results.tsv</p>
+</div>
+{% endif %}
+{% endblock %}

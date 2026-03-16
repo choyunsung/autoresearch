@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Research Forks — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: start;">
+  <div>
+    <h1>Research Forks</h1>
+    <p class="subtitle">Fork experiments, run your own research, and merge results back</p>
+  </div>
+  <a href="/merge-requests" class="btn">Merge Requests</a>
+</div>
+
+{% if fork_data %}
+<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  {% for fd in fork_data %}
+  {% set f = fd.fork %}
+  <div class="card" style="display: flex; align-items: center; gap: 1.5rem; padding: 1rem 1.25rem;">
+    <div style="flex: 1;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span class="badge badge-{{ f.status }}">{{ f.status }}</span>
+        <a href="/forks/{{ f.id }}" style="font-weight: 600; font-size: 1rem;">{{ f.fork_branch_name }}</a>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        {{ f.forker.display_name }} forked from
+        <a href="/researchers/{{ f.source_researcher_id }}">{{ f.source_researcher.display_name }}</a>/{{ f.source_branch_name }}
+        at <span style="font-family: monospace;">{{ f.source_commit_hash[:7] }}</span>
+        &middot; {{ f.created_at.strftime('%Y-%m-%d') }}
+      </div>
+      {% if f.description %}
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">{{ f.description }}</p>
+      {% endif %}
+    </div>
+    <div style="text-align: right; min-width: 120px;">
+      <div style="font-size: 0.8rem; color: var(--text-muted);">{{ fd.exp_count }} experiments</div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">{{ fd.kept_count }} kept</div>
+      {% if fd.best_val_bpb %}
+      <div><span class="metric metric-good">{{ "%.6f"|format(fd.best_val_bpb) }}</span></div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>No forks yet</h3>
+  <p>Go to an experiment and click "Fork" to start your own research branch!</p>
+</div>
+{% endif %}
+{% endblock %}

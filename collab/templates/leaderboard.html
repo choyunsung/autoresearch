@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Leaderboard</h1>
+  <p class="subtitle">Best val_bpb achieved by each researcher</p>
+</div>
+
+{% if leaderboard %}
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Researcher</th>
+          <th>Institution</th>
+          <th>GPU</th>
+          <th>Best val_bpb</th>
+          <th>Total Experiments</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in leaderboard %}
+        <tr>
+          <td>
+            <span class="rank-badge {% if loop.index <= 3 %}rank-{{ loop.index }}{% else %}rank-other{% endif %}">
+              {{ loop.index }}
+            </span>
+          </td>
+          <td style="font-weight: 600;">{{ entry[0].display_name }}</td>
+          <td>{{ entry[0].institution or '—' }}</td>
+          <td>{{ entry[0].gpu_info or '—' }}</td>
+          <td><span class="metric metric-good">{{ "%.6f"|format(entry.best_bpb) }}</span></td>
+          <td>{{ entry.total_experiments }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>No results yet</h3>
+  <p>Sync your experiments to appear on the leaderboard!</p>
+</div>
+{% endif %}
+{% endblock %}

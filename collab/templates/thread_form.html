@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}New Thread — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 700px; margin: 2rem auto;">
+  <div class="card">
+    <h2 style="margin-bottom: 1.5rem;">New Research Thread</h2>
+    <form method="post" action="/threads/new">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required
+               placeholder="e.g. Hypothesis: Increasing depth to 12 with lower LR should improve val_bpb">
+      </div>
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" name="category">
+          <option value="hypothesis">Hypothesis — A testable idea</option>
+          <option value="discussion">Discussion — Open-ended exploration</option>
+          <option value="insight">Insight — A finding or conclusion</option>
+          <option value="question">Question — Need help or clarification</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="body">Body (Markdown supported)</label>
+        <textarea id="body" name="body" required style="min-height: 200px;"
+                  placeholder="Describe your hypothesis, provide context, reference experiments..."></textarea>
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">Create Thread</button>
+        <a href="/threads" class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

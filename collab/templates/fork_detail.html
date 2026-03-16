@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Fork: {{ fork.fork_branch_name }} — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display: flex; justify-content: space-between; align-items: start;">
+    <div>
+      <h1 style="font-family: monospace;">{{ fork.fork_branch_name }}</h1>
+      <p class="subtitle">
+        <span class="badge badge-{{ fork.status }}">{{ fork.status }}</span>
+        Forked by <a href="/researchers/{{ fork.forker_id }}">{{ fork.forker.display_name }}</a>
+        from <a href="/researchers/{{ fork.source_researcher_id }}">{{ fork.source_researcher.display_name }}</a> /
+        <span style="font-family: monospace;">{{ fork.source_branch_name }}</span>
+        at <span style="font-family: monospace;">{{ fork.source_commit_hash[:7] }}</span>
+      </p>
+    </div>
+    {% if user and user.id == fork.forker_id and fork.status == 'active' %}
+    <a href="/forks/{{ fork.id }}/merge/new" class="btn btn-primary">Create Merge Request</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if fork.description %}
+<div class="card" style="margin-bottom: 1.5rem;">
+  <p style="line-height: 1.6;">{{ fork.description }}</p>
+</div>
+{% endif %}
+
+<!-- Source experiment comparison -->
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <span class="card-title">Source Experiment</span>
+  </div>
+  <div style="display: flex; gap: 2rem; align-items: center;">
+    <div>
+      <a href="/experiments/{{ source_exp.id }}">
+        <span style="font-family: monospace;">{{ source_exp.commit_hash[:7] }}</span>
+      </a>
+      — {{ source_exp.description }}
+    </div>
+    <span class="metric">val_bpb: {{ "%.6f"|format(source_exp.val_bpb) }}</span>
+  </div>
+</div>
+
+<!-- Fork experiments -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">Fork Experiments ({{ experiments|length }})</span>
+  </div>
+  {% if experiments %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr><th>Commit</th><th>val_bpb</th><th>vs Source</th><th>Status</th><th>Description</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for exp in experiments %}
+        <tr>
+          <td><a href="/experiments/{{ exp.id }}" style="font-family: monospace; font-size: 0.8rem;">{{ exp.commit_hash[:7] }}</a></td>
+          <td>
+            <span class="metric {% if exp.status == 'keep' %}metric-good{% elif exp.status == 'crash' %}metric-bad{% else %}metric-neutral{% endif %}">
+              {{ "%.6f"|format(exp.val_bpb) }}
+            </span>
+          </td>
+          <td>
+            {% if exp.val_bpb > 0 and source_exp.val_bpb > 0 %}
+              {% set delta = exp.val_bpb - source_exp.val_bpb %}
+              <span style="color: {% if delta < 0 %}var(--green){% elif delta > 0 %}var(--red){% else %}var(--text-muted){% endif %}; font-size: 0.85rem; font-family: monospace;">
+                {{ "%+.6f"|format(delta) }}
+              </span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td><span class="badge badge-{{ exp.status }}">{{ exp.status }}</span></td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ exp.description }}</td>
+          <td style="color: var(--text-muted); font-size: 0.8rem;">{{ exp.created_at.strftime('%m/%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <h3>No experiments yet</h3>
+    <p>Start running experiments and sync them with the CLI tool!</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

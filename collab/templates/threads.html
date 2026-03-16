@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Research Threads — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: start;">
+  <div>
+    <h1>Research Threads</h1>
+    <p class="subtitle">Hypotheses, discussions, and insights</p>
+  </div>
+  <a href="/threads/new" class="btn btn-primary">New Thread</a>
+</div>
+
+<!-- Category filters -->
+<div class="filter-bar">
+  <a href="/threads" class="btn btn-sm {% if not filter_category %}btn-primary{% endif %}">All</a>
+  <a href="/threads?category=hypothesis" class="btn btn-sm {% if filter_category == 'hypothesis' %}btn-primary{% endif %}">Hypothesis</a>
+  <a href="/threads?category=discussion" class="btn btn-sm {% if filter_category == 'discussion' %}btn-primary{% endif %}">Discussion</a>
+  <a href="/threads?category=insight" class="btn btn-sm {% if filter_category == 'insight' %}btn-primary{% endif %}">Insight</a>
+  <a href="/threads?category=question" class="btn btn-sm {% if filter_category == 'question' %}btn-primary{% endif %}">Question</a>
+</div>
+
+{% if threads %}
+<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  {% for thread in threads %}
+  <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;">
+    <div style="flex: 1;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        {% if thread.is_pinned %}<span class="pin-icon">&#x1F4CC;</span>{% endif %}
+        <span class="badge badge-{{ thread.category }}">{{ thread.category }}</span>
+        <a href="/threads/{{ thread.id }}" style="font-weight: 600; font-size: 1rem;">{{ thread.title }}</a>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        {{ thread.author.display_name }} &middot;
+        {{ thread.created_at.strftime('%Y-%m-%d') }} &middot;
+        {{ thread.comments|length }} comments
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>No threads yet</h3>
+  <p>Start a discussion about your research hypotheses!</p>
+</div>
+{% endif %}
+{% endblock %}

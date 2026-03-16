@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Research Dashboard</h1>
+  <p class="subtitle">Collaborative autonomous LLM pretraining research</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-value">{{ total_researchers }}</div>
+    <div class="stat-label">Researchers</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ total_experiments }}</div>
+    <div class="stat-label">Total Experiments</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">{{ kept_experiments }}</div>
+    <div class="stat-label">Improvements Kept</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-value">
+      {% if best_experiment %}{{ "%.6f"|format(best_experiment.val_bpb) }}{% else %}—{% endif %}
+    </div>
+    <div class="stat-label">Best val_bpb</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Main area -->
+  <div>
+    <!-- Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">val_bpb Progress</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="bpbChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Experiments -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Experiments</span>
+        <a href="/experiments" class="btn btn-sm">View All</a>
+      </div>
+      {% if recent_experiments %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Researcher</th>
+              <th>val_bpb</th>
+              <th>Status</th>
+              <th>Description</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exp in recent_experiments %}
+            <tr>
+              <td>{{ exp.researcher.display_name }}</td>
+              <td>
+                <a href="/experiments/{{ exp.id }}">
+                  <span class="metric {% if exp.status == 'keep' %}metric-good{% elif exp.status == 'crash' %}metric-bad{% else %}metric-neutral{% endif %}">
+                    {{ "%.6f"|format(exp.val_bpb) }}
+                  </span>
+                </a>
+              </td>
+              <td><span class="badge badge-{{ exp.status }}">{{ exp.status }}</span></td>
+              <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ exp.description }}</td>
+              <td style="color: var(--text-muted); font-size: 0.8rem;">{{ exp.created_at.strftime('%m/%d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <h3>No experiments yet</h3>
+        <p>Sync your first results.tsv to get started!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <!-- Leaderboard -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Leaderboard</span>
+        <a href="/leaderboard" class="btn btn-sm">Full</a>
+      </div>
+      {% if leaderboard %}
+      <table>
+        <tbody>
+          {% for entry in leaderboard[:5] %}
+          <tr>
+            <td>
+              <span class="rank-badge {% if loop.index <= 3 %}rank-{{ loop.index }}{% else %}rank-other{% endif %}">
+                {{ loop.index }}
+              </span>
+            </td>
+            <td>{{ entry.display_name }}</td>
+            <td><span class="metric metric-good">{{ "%.6f"|format(entry.best_bpb) }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state"><p>No results yet</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Recent Threads -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Research Threads</span>
+        <a href="/threads/new" class="btn btn-sm btn-primary">New</a>
+      </div>
+      {% if recent_threads %}
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for thread in recent_threads %}
+        <div style="padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+          <a href="/threads/{{ thread.id }}" style="font-weight: 500; font-size: 0.9rem;">
+            {% if thread.is_pinned %}<span class="pin-icon">&#x1F4CC;</span>{% endif %}
+            {{ thread.title }}
+          </a>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
+            <span class="badge badge-{{ thread.category }}">{{ thread.category }}</span>
+            {{ thread.author.display_name }} &middot;
+            {{ thread.comments|length }} comments
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state"><p>Start a discussion!</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const chartData = {{ chart_data_json | safe }};
+const colors = ['#58a6ff','#3fb950','#bc8cff','#d29922','#f85149','#39d353','#79c0ff'];
+
+const datasets = Object.entries(chartData).map(([name, points], i) => ({
+  label: name,
+  data: points,
+  borderColor: colors[i % colors.length],
+  backgroundColor: colors[i % colors.length] + '20',
+  borderWidth: 2,
+  pointRadius: 3,
+  tension: 0.3,
+}));
+
+if (datasets.length > 0) {
+  new Chart(document.getElementById('bpbChart'), {
+    type: 'line',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      scales: {
+        x: {
+          type: 'time',
+          time: { unit: 'hour' },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e' },
+        },
+        y: {
+          title: { display: true, text: 'val_bpb (lower is better)', color: '#8b949e' },
+          grid: { color: '#21262d' },
+          ticks: { color: '#8b949e' },
+        },
+      },
+      plugins: {
+        legend: { labels: { color: '#e6edf3' } },
+        tooltip: {
+          callbacks: {
+            afterLabel: (ctx) => ctx.raw.desc || '',
+          },
+        },
+      },
+    },
+  });
+}
+</script>
+{% endblock %}

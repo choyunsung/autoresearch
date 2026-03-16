@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ researcher.display_name }} — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="grid-2">
+  <!-- Main -->
+  <div>
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <div>
+          <h1 style="font-size: 1.5rem;">{{ researcher.display_name }}</h1>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">@{{ researcher.username }}</p>
+          {% if researcher.institution %}
+          <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">{{ researcher.institution }}</p>
+          {% endif %}
+          {% if researcher.bio %}
+          <p style="margin-top: 0.75rem; line-height: 1.6;">{{ researcher.bio }}</p>
+          {% endif %}
+        </div>
+        {% if is_own_profile %}
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="/profile/edit" class="btn btn-sm">Edit</a>
+          <a href="/profile/token" class="btn btn-sm">API Token</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" style="font-size: 1.5rem;">{{ total_exp }}</div>
+        <div class="stat-label">Experiments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="font-size: 1.5rem;">{{ kept_exp }}</div>
+        <div class="stat-label">Kept</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="font-size: 1.5rem;">
+          {% if best_experiment %}{{ "%.6f"|format(best_experiment.val_bpb) }}{% else %}—{% endif %}
+        </div>
+        <div class="stat-label">Best val_bpb</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="font-size: 1.5rem;">{{ researcher.gpu_info or '—' }}</div>
+        <div class="stat-label">GPU</div>
+      </div>
+    </div>
+
+    <!-- Pending Merge Requests (own profile only) -->
+    {% if is_own_profile and pending_mrs %}
+    <div class="card" style="border-color: var(--orange);">
+      <div class="card-header">
+        <span class="card-title" style="color: var(--orange);">Pending Merge Requests</span>
+      </div>
+      {% for mr in pending_mrs %}
+      <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+        <a href="/merge-requests/{{ mr.id }}" style="font-weight: 500;">{{ mr.title }}</a>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          from {{ mr.author.display_name }} &middot; val_bpb: {{ "%.6f"|format(mr.best_val_bpb) }} &middot; {{ mr.experiments_count }} experiments
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Recent Experiments -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Experiments</span>
+        <a href="/experiments?researcher_id={{ researcher.id }}" class="btn btn-sm">View All</a>
+      </div>
+      {% if recent_experiments %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Commit</th><th>Branch</th><th>val_bpb</th><th>Status</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            {% for exp in recent_experiments %}
+            <tr>
+              <td><a href="/experiments/{{ exp.id }}" style="font-family: monospace; font-size: 0.8rem;">{{ exp.commit_hash[:7] }}</a></td>
+              <td style="font-family: monospace; font-size: 0.8rem;">{{ exp.branch_name }}</td>
+              <td><span class="metric {% if exp.status == 'keep' %}metric-good{% elif exp.status == 'crash' %}metric-bad{% else %}metric-neutral{% endif %}">{{ "%.6f"|format(exp.val_bpb) }}</span></td>
+              <td><span class="badge badge-{{ exp.status }}">{{ exp.status }}</span></td>
+              <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ exp.description }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><p>No experiments yet</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <!-- Branches -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Branches</div>
+      {% for branch, count in branches %}
+      <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--border);">
+        <a href="/experiments?researcher_id={{ researcher.id }}&branch={{ branch }}" style="font-family: monospace; font-size: 0.85rem;">{{ branch }}</a>
+        <span style="color: var(--text-muted); font-size: 0.8rem;">{{ count }} exp</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Forks Created -->
+    {% if forks_created %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Forks Created</div>
+      {% for f in forks_created %}
+      <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+        <a href="/forks/{{ f.id }}" style="font-size: 0.9rem;">{{ f.fork_branch_name }}</a>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          from {{ f.source_researcher.display_name }}/{{ f.source_branch_name }}
+          <span class="badge badge-{{ f.status }}">{{ f.status }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Others forked my work -->
+    {% if forks_of_work %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Forked by Others</div>
+      {% for f in forks_of_work %}
+      <div style="padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+        <a href="/forks/{{ f.id }}" style="font-size: 0.9rem;">{{ f.forker.display_name }}</a>
+        <div style="font-size: 0.75rem; color: var(--text-muted);">
+          {{ f.fork_branch_name }} <span class="badge badge-{{ f.status }}">{{ f.status }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        Joined {{ researcher.created_at.strftime('%Y-%m-%d') }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

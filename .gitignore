@@ -21,3 +21,10 @@ dev/
 
 # Results file
 results.tsv
+
+# Platform
+collab/research.db
+collab/.secret_key
+*.output
+logs/
+.server.pid

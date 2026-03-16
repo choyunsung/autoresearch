@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}API Token — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+  <div class="card">
+    <h2 style="margin-bottom: 1rem;">API Token</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+      Use this token with the CLI sync tool to upload experiment results.
+    </p>
+
+    {% if token %}
+    <div class="alert alert-success" style="word-break: break-all; font-family: monospace; font-size: 0.8rem;">
+      {{ token }}
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+      Copy this token. It expires in 72 hours.
+    </p>
+    <div class="card" style="background: var(--bg-primary);">
+      <p style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Quick setup:</p>
+      <pre style="font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap;">
+# Save token to ~/.autoresearch-collab-token
+echo "{{ token }}" > ~/.autoresearch-collab-token
+chmod 600 ~/.autoresearch-collab-token
+
+# Or login via CLI:
+python sync_results.py login --username {{ user.username }} --password YOUR_PASSWORD
+
+# Sync results:
+python sync_results.py sync --branch autoresearch/your-tag --with-diffs</pre>
+    </div>
+    {% else %}
+    <form method="post" action="/profile/token">
+      <button type="submit" class="btn btn-primary">Generate New Token</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

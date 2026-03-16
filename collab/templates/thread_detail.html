@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.title }} — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <!-- Thread header -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+      <span class="badge badge-{{ thread.category }}">{{ thread.category }}</span>
+      {% if thread.is_pinned %}<span class="pin-icon">&#x1F4CC; Pinned</span>{% endif %}
+    </div>
+    <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">{{ thread.title }}</h1>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+      {{ thread.author.display_name }} &middot;
+      {{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}
+    </div>
+    <div style="line-height: 1.8; white-space: pre-wrap;">{{ thread.body }}</div>
+  </div>
+
+  <!-- Comments -->
+  <h3 style="margin-bottom: 1rem; color: var(--text-secondary);">
+    Discussion ({{ thread.comments|length }})
+  </h3>
+
+  {% for comment in thread.comments %}
+  <div class="comment">
+    <div class="comment-meta">
+      <strong>{{ comment.author.display_name }}</strong> &middot;
+      {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+    </div>
+    <div class="comment-body" style="white-space: pre-wrap;">{{ comment.body }}</div>
+    {% if comment.linked_experiment %}
+    <div class="linked-experiment">
+      Referenced experiment:
+      <a href="/experiments/{{ comment.linked_experiment_id }}">
+        <span style="font-family: monospace;">{{ comment.linked_experiment.commit_hash[:7] }}</span>
+      </a>
+      — val_bpb: <span class="metric metric-good">{{ "%.6f"|format(comment.linked_experiment.val_bpb) }}</span>
+      — {{ comment.linked_experiment.description }}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <!-- Add comment -->
+  {% if user %}
+  <div class="card" style="margin-top: 1rem;">
+    <form method="post" action="/threads/{{ thread.id }}/comment">
+      <div class="form-group">
+        <label>Reply</label>
+        <textarea name="body" placeholder="Share your thoughts, link experiments as evidence..." required></textarea>
+      </div>
+      <div class="form-group">
+        <label>Link an experiment (optional)</label>
+        <select name="linked_experiment_id">
+          <option value="">None</option>
+          {% for exp in experiments %}
+          <option value="{{ exp.id }}">
+            {{ exp.commit_hash[:7] }} — {{ "%.6f"|format(exp.val_bpb) }} — {{ exp.description[:50] }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Post Reply</button>
+    </form>
+  </div>
+  {% else %}
+  <p style="color: var(--text-muted); margin-top: 1rem;">
+    <a href="/login">Login</a> to join the discussion.
+  </p>
+  {% endif %}
+</div>
+{% endblock %}

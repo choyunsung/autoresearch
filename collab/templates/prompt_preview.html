@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Prompt Preview — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <div class="page-header">
+    <h1>Generated Agent Prompt</h1>
+    <p class="subtitle">This is the program.md that research agents will use</p>
+  </div>
+
+  <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+    <a href="/research-config" class="btn">Edit Config</a>
+    <button onclick="copyPrompt()" class="btn btn-primary">Copy to Clipboard</button>
+    <a href="/research-config/download" class="btn">Download program.md</a>
+  </div>
+
+  <div class="card">
+    <pre id="prompt-content" style="white-space: pre-wrap; font-family: 'SF Mono', monospace; font-size: 0.85rem; line-height: 1.6; color: var(--text-primary);">{{ prompt }}</pre>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyPrompt() {
+  const text = document.getElementById('prompt-content').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Prompt copied to clipboard!');
+  });
+}
+</script>
+{% endblock %}

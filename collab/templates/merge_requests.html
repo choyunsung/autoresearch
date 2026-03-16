@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Merge Requests — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Merge Requests</h1>
+  <p class="subtitle">Review and merge research improvements from forks</p>
+</div>
+
+{% if merge_requests %}
+<div style="display: flex; flex-direction: column; gap: 0.5rem;">
+  {% for mr in merge_requests %}
+  <div class="card" style="display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;">
+    <div style="flex: 1;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span class="badge badge-{% if mr.status == 'open' %}discussion{% elif mr.status == 'merged' %}keep{% elif mr.status == 'approved' %}insight{% else %}crash{% endif %}">
+          {{ mr.status }}
+        </span>
+        <a href="/merge-requests/{{ mr.id }}" style="font-weight: 600;">{{ mr.title }}</a>
+      </div>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        {{ mr.author.display_name }} wants to merge into
+        <a href="/researchers/{{ mr.target_researcher_id }}">{{ mr.target_researcher.display_name }}</a>'s research
+        &middot; {{ mr.created_at.strftime('%Y-%m-%d') }}
+        &middot; {{ mr.comments|length }} comments
+      </div>
+    </div>
+    <div style="text-align: right; min-width: 150px;">
+      {% if mr.best_val_bpb > 0 %}
+      <div><span class="metric metric-good">{{ "%.6f"|format(mr.best_val_bpb) }}</span></div>
+      {% endif %}
+      <div style="font-size: 0.8rem; color: var(--text-muted);">
+        {{ mr.kept_count }}/{{ mr.experiments_count }} kept
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>No merge requests</h3>
+  <p>Fork an experiment and submit a merge request when you have improvements!</p>
+</div>
+{% endif %}
+{% endblock %}

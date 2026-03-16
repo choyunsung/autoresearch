@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Experiment {{ experiment.commit_hash[:7] }} — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: start;">
+  <div>
+    <h1>
+      <span style="font-family: monospace;">{{ experiment.commit_hash[:7] }}</span>
+      <span class="badge badge-{{ experiment.status }}" style="vertical-align: middle; margin-left: 0.5rem;">{{ experiment.status }}</span>
+    </h1>
+    <p class="subtitle">{{ experiment.description }}</p>
+  </div>
+  {% if user and experiment.status == 'keep' %}
+  <a href="/experiments/{{ experiment.id }}/fork" class="btn btn-primary">Fork This Research</a>
+  {% elif not user %}
+  <a href="/login" class="btn btn-sm">Login to Fork</a>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div>
+    <!-- Metrics -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">Metrics</div>
+      <div class="stats-grid" style="margin-bottom: 0;">
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem; {% if experiment.status == 'keep' %}color: var(--green);{% endif %}">
+            {{ "%.6f"|format(experiment.val_bpb) }}
+          </div>
+          <div class="stat-label">val_bpb</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem;">{{ "%.1f"|format(experiment.memory_gb) }}</div>
+          <div class="stat-label">Memory (GB)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem;">{{ "%.1f"|format(experiment.mfu_percent) }}%</div>
+          <div class="stat-label">MFU</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem;">{{ "%.1f"|format(experiment.num_params_m) }}M</div>
+          <div class="stat-label">Parameters</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem;">{{ experiment.num_steps }}</div>
+          <div class="stat-label">Steps</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" style="font-size: 1.5rem;">{{ "%.1f"|format(experiment.total_tokens_m) }}M</div>
+          <div class="stat-label">Tokens</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Diff -->
+    {% if experiment.code_diff %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Code Changes</div>
+      <div class="diff-block">{% for line in experiment.code_diff.split('\n') %}{% if line.startswith('+') and not line.startswith('+++') %}<span class="diff-add">{{ line }}</span>
+{% elif line.startswith('-') and not line.startswith('---') %}<span class="diff-del">{{ line }}</span>
+{% else %}{{ line }}
+{% endif %}{% endfor %}</div>
+    </div>
+    {% endif %}
+
+    <!-- Hyperparameters -->
+    {% if experiment.hyperparams_json and experiment.hyperparams_json != '{}' %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Hyperparameters</div>
+      <div class="params-grid" id="hyperparams"></div>
+    </div>
+    {% endif %}
+
+    <!-- Comments -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 1rem;">
+        Feedback ({{ experiment.comments|length }})
+      </div>
+
+      {% for comment in experiment.comments %}
+      <div class="comment">
+        <div class="comment-meta">
+          <strong>{{ comment.author.display_name }}</strong> &middot;
+          {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </div>
+        <div class="comment-body">{{ comment.body }}</div>
+      </div>
+      {% endfor %}
+
+      {% if user %}
+      <form method="post" action="/experiments/{{ experiment.id }}/comment" style="margin-top: 1rem;">
+        <div class="form-group">
+          <label>Add feedback</label>
+          <textarea name="body" placeholder="Share your thoughts on this experiment..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post Feedback</button>
+      </form>
+      {% else %}
+      <p style="color: var(--text-muted); font-size: 0.9rem;">
+        <a href="/login">Login</a> to leave feedback.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.75rem;">Details</div>
+      <table style="font-size: 0.85rem;">
+        <tr><td style="color: var(--text-muted);">Researcher</td><td>{{ experiment.researcher.display_name }}</td></tr>
+        <tr><td style="color: var(--text-muted);">Branch</td><td style="font-family: monospace;">{{ experiment.branch_name }}</td></tr>
+        <tr><td style="color: var(--text-muted);">Commit</td><td style="font-family: monospace;">{{ experiment.commit_hash }}</td></tr>
+        <tr><td style="color: var(--text-muted);">Depth</td><td>{{ experiment.depth }}</td></tr>
+        <tr><td style="color: var(--text-muted);">Training Time</td><td>{{ "%.1f"|format(experiment.training_seconds) }}s</td></tr>
+        <tr><td style="color: var(--text-muted);">Date</td><td>{{ experiment.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+      </table>
+    </div>
+
+    {% if experiment.researcher.gpu_info %}
+    <div class="card">
+      <div class="card-title" style="margin-bottom: 0.5rem;">Hardware</div>
+      <p style="font-size: 0.9rem;">{{ experiment.researcher.gpu_info }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if experiment.hyperparams_json and experiment.hyperparams_json != '{}' %}
+<script>
+try {
+  const params = JSON.parse({{ experiment.hyperparams_json | tojson }});
+  const container = document.getElementById('hyperparams');
+  Object.entries(params).forEach(([k, v]) => {
+    container.innerHTML += `<div class="param-item"><span class="param-key">${k}:</span> <span class="param-val">${v}</span></div>`;
+  });
+} catch(e) {}
+</script>
+{% endif %}
+{% endblock %}

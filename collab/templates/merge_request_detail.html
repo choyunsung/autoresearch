@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}MR #{{ mr.id }}: {{ mr.title }} — AutoResearch Collab{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+  <!-- Header -->
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+      <span class="badge badge-{% if mr.status == 'open' %}discussion{% elif mr.status == 'merged' %}keep{% elif mr.status == 'approved' %}insight{% else %}crash{% endif %}" style="font-size: 0.85rem;">
+        {{ mr.status }}
+      </span>
+      <span style="color: var(--text-muted);">MR #{{ mr.id }}</span>
+    </div>
+    <h1 style="font-size: 1.4rem; margin-bottom: 0.5rem;">{{ mr.title }}</h1>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+      <a href="/researchers/{{ mr.author_id }}">{{ mr.author.display_name }}</a>
+      wants to merge
+      <a href="/forks/{{ mr.fork_id }}" style="font-family: monospace;">{{ mr.fork.fork_branch_name }}</a>
+      into
+      <a href="/researchers/{{ mr.target_researcher_id }}">{{ mr.target_researcher.display_name }}</a>'s
+      <span style="font-family: monospace;">{{ mr.fork.source_branch_name }}</span>
+      &middot; {{ mr.created_at.strftime('%Y-%m-%d %H:%M') }}
+    </div>
+
+    {% if mr.body %}
+    <div style="line-height: 1.8; white-space: pre-wrap; padding: 1rem; background: var(--bg-primary); border-radius: 6px;">{{ mr.body }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.3rem; color: var(--green);">{{ "%.6f"|format(mr.best_val_bpb) }}</div>
+      <div class="stat-label">Best val_bpb</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.3rem;">{{ mr.experiments_count }}</div>
+      <div class="stat-label">Total Experiments</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.3rem;">{{ mr.kept_count }}</div>
+      <div class="stat-label">Kept</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="font-size: 1.3rem;">
+        {% if mr.fork.source_experiment.val_bpb > 0 and mr.best_val_bpb > 0 %}
+          {% set delta = mr.best_val_bpb - mr.fork.source_experiment.val_bpb %}
+          <span style="color: {% if delta < 0 %}var(--green){% else %}var(--red){% endif %};">
+            {{ "%+.6f"|format(delta) }}
+          </span>
+        {% else %}—{% endif %}
+      </div>
+      <div class="stat-label">vs Source</div>
+    </div>
+  </div>
+
+  <!-- Kept experiments from fork -->
+  {% if fork_experiments %}
+  <div class="card">
+    <div class="card-title" style="margin-bottom: 0.75rem;">Kept Experiments (best first)</div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Commit</th><th>val_bpb</th><th>Memory</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          {% for exp in fork_experiments %}
+          <tr>
+            <td><a href="/experiments/{{ exp.id }}" style="font-family: monospace; font-size: 0.8rem;">{{ exp.commit_hash[:7] }}</a></td>
+            <td><span class="metric metric-good">{{ "%.6f"|format(exp.val_bpb) }}</span></td>
+            <td>{{ "%.1f"|format(exp.memory_gb) }} GB</td>
+            <td>{{ exp.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Reviewer comment -->
+  {% if mr.reviewer_comment %}
+  <div class="card" style="border-left: 3px solid {% if mr.status == 'merged' or mr.status == 'approved' %}var(--green){% else %}var(--red){% endif %};">
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+      Review by {{ mr.target_researcher.display_name }} &middot; {{ mr.reviewed_at.strftime('%Y-%m-%d %H:%M') if mr.reviewed_at else '' }}
+    </div>
+    <div style="line-height: 1.6;">{{ mr.reviewer_comment }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Review actions (only for target researcher) -->
+  {% if user and user.id == mr.target_researcher_id and mr.status == 'open' %}
+  <div class="card" style="border: 1px solid var(--orange);">
+    <div class="card-title" style="margin-bottom: 1rem; color: var(--orange);">Review This Merge Request</div>
+    <form method="post" action="/merge-requests/{{ mr.id }}/review">
+      <div class="form-group">
+        <label>Review Comment</label>
+        <textarea name="reviewer_comment" placeholder="Your feedback on this research..."></textarea>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="submit" name="action" value="merge" class="btn btn-primary" style="background: var(--green); border-color: var(--green);">
+          Merge
+        </button>
+        <button type="submit" name="action" value="approve" class="btn btn-primary">
+          Approve
+        </button>
+        <button type="submit" name="action" value="reject" class="btn" style="color: var(--red); border-color: var(--red);">
+          Reject
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Comments -->
+  <div class="card" style="margin-top: 1rem;">
+    <div class="card-title" style="margin-bottom: 1rem;">Discussion ({{ mr.comments|length }})</div>
+
+    {% for comment in mr.comments %}
+    <div class="comment">
+      <div class="comment-meta">
+        <strong>{{ comment.author.display_name }}</strong> &middot;
+        {{ comment.created_at.strftime('%Y-%m-%d %H:%M') }}
+      </div>
+      <div class="comment-body" style="white-space: pre-wrap;">{{ comment.body }}</div>
+    </div>
+    {% endfor %}
+
+    {% if user %}
+    <form method="post" action="/merge-requests/{{ mr.id }}/comment" style="margin-top: 1rem;">
+      <div class="form-group">
+        <textarea name="body" placeholder="Add a comment..." required></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary">Comment</button>
+    </form>
+    {% else %}
+    <p style="color: var(--text-muted);"><a href="/login">Login</a> to comment.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
